@@ -87,39 +87,45 @@ def lambda_handler(event, _context):
             raise RuntimeError("OPENAI_API_KEY missing from secret")
 
         client = OpenAI(api_key=api_key)
-        with open(audio_path, "rb") as audio_file:
-            transcription = client.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_file,
-                response_format="json",
+        try:
+            with open(audio_path, "rb") as audio_file:
+                transcription = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file,
+                    response_format="json",
+                )
+
+            text = (
+                transcription.get("text") if isinstance(transcription, dict) else transcription.text
+            )
+            prompt = (
+                "You will receive a transcript of a voice memo. "
+                "Return a cleaned, well-formatted version with corrected syntax and "
+                "highlight important items with formatting where appropriate. "
+                "Output must be exactly two blocks separated by a line break: "
+                "(1) summary, blank line, (2) cleaned text. "
+                "Summary line must be in the same language as the input and prefixed "
+                "with a local equivalent of \"Summary:\" (e.g., \"Zusammenfassung:\", "
+                "\"Резюме:\", \"Resumen:\"). "
+                "Then add a blank line and the cleaned text. "
+                "Use only Markdown bold (**...**) and bullet lists; no headings, "
+                "no code blocks, no links, no tables, no HTML. "
+                "Respond in the same language as the original message."
             )
 
-        text = transcription.get("text") if isinstance(transcription, dict) else transcription.text
-        prompt = (
-            "You will receive a transcript of a voice memo. "
-            "Return a cleaned, well-formatted version with corrected syntax and "
-            "highlight important items with formatting where appropriate. "
-            "Output must be exactly two blocks separated by a line break: "
-            "(1) summary, blank line, (2) cleaned text. "
-            "Summary line must be in the same language as the input and prefixed "
-            "with a local equivalent of \"Summary:\" (e.g., \"Zusammenfassung:\", "
-            "\"Резюме:\", \"Resumen:\"). "
-            "Then add a blank line and the cleaned text. "
-            "Use only Markdown bold (**...**) and bullet lists; no headings, "
-            "no code blocks, no links, no tables, no HTML. "
-            "Respond in the same language as the original message."
-        )
+            gemini_key = secret.get("GEMINI_API_KEY")
+            if not gemini_key:
+                raise RuntimeError("GEMINI_API_KEY missing from secret")
 
-        gemini_key = secret.get("GEMINI_API_KEY")
-        if not gemini_key:
-            raise RuntimeError("GEMINI_API_KEY missing from secret")
-
-        genai.configure(api_key=gemini_key)
-        gemini_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-        model = genai.GenerativeModel(gemini_model)
-        response = model.generate_content(f"{prompt}\n\nTranscript:\n{text}")
-        formatted_text = response.text or ""
-        formatted_text = re.sub(r"^(\s*)[*•]\s+", r"\1- ", formatted_text, flags=re.MULTILINE)
-        return _response(200, {"text": formatted_text})
+            genai.configure(api_key=gemini_key)
+            gemini_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+            model = genai.GenerativeModel(gemini_model)
+            response = model.generate_content(f"{prompt}\n\nTranscript:\n{text}")
+            formatted_text = response.text or ""
+            formatted_text = re.sub(r"^(\s*)[*•]\s+", r"\1- ", formatted_text, flags=re.MULTILINE)
+            return _response(200, {"text": formatted_text})
+        finally:
+            if audio_path and os.path.exists(audio_path):
+                os.remove(audio_path)
     except Exception as exc:
         return _response(500, {"error": str(exc)})
