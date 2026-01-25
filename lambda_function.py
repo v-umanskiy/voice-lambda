@@ -59,15 +59,8 @@ def _decode_audio_payload(payload):
     return filepath
 
 
-def lambda_handler(event, context):
+def lambda_handler(event, _context):
     path = event.get("rawPath") or event.get("path") or ""
-    method = (
-        event.get("requestContext", {})
-        .get("http", {})
-        .get("method")
-        or event.get("httpMethod")
-        or ""
-    )
     if path.endswith("/health"):
         return _response(200, {"status": "ok"})
 
@@ -106,7 +99,10 @@ def lambda_handler(event, context):
             "You will receive a transcript of a voice memo. "
             "Return a cleaned, well-formatted version with corrected syntax and "
             "highlight important items with formatting where appropriate. "
-            "Add a short summary at the beginning. "
+            "Start with a short summary line in the same language as the input. "
+            "Then add a blank line and the cleaned text. "
+            "Use only Markdown bold (**...**) and bullet lists; no headings, "
+            "no code blocks, no links, no tables, no HTML. "
             "Respond in the same language as the original message."
         )
 
