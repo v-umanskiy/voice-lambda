@@ -2,9 +2,11 @@ import base64
 import json
 import mimetypes
 import os
+import re
 import uuid
 
 import boto3
+import google.generativeai as genai
 from openai import OpenAI
 
 _secrets_client = boto3.client("secretsmanager")
@@ -93,28 +95,31 @@ def lambda_handler(event, _context):
             )
 
         text = transcription.get("text") if isinstance(transcription, dict) else transcription.text
-
-        chat_model = os.environ.get("OPENAI_CHAT_MODEL", "gpt-4o-mini")
         prompt = (
             "You will receive a transcript of a voice memo. "
             "Return a cleaned, well-formatted version with corrected syntax and "
             "highlight important items with formatting where appropriate. "
-            "Start with a short summary line in the same language as the input. "
+            "Output must be exactly two blocks separated by a line break: "
+            "(1) summary, blank line, (2) cleaned text. "
+            "Summary line must be in the same language as the input and prefixed "
+            "with a local equivalent of \"Summary:\" (e.g., \"Zusammenfassung:\", "
+            "\"Резюме:\", \"Resumen:\"). "
             "Then add a blank line and the cleaned text. "
             "Use only Markdown bold (**...**) and bullet lists; no headings, "
             "no code blocks, no links, no tables, no HTML. "
             "Respond in the same language as the original message."
         )
 
-        completion = client.chat.completions.create(
-            model=chat_model,
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": text},
-            ],
-            temperature=0.2,
-        )
-        formatted_text = completion.choices[0].message.content
+        gemini_key = secret.get("GEMINI_API_KEY")
+        if not gemini_key:
+            raise RuntimeError("GEMINI_API_KEY missing from secret")
+
+        genai.configure(api_key=gemini_key)
+        gemini_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+        model = genai.GenerativeModel(gemini_model)
+        response = model.generate_content(f"{prompt}\n\nTranscript:\n{text}")
+        formatted_text = response.text or ""
+        formatted_text = re.sub(r"^(\s*)[*•]\s+", r"\1- ", formatted_text, flags=re.MULTILINE)
         return _response(200, {"text": formatted_text})
     except Exception as exc:
         return _response(500, {"error": str(exc)})

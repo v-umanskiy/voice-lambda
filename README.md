@@ -6,9 +6,9 @@ AWS Lambda handler that accepts base64 audio from a Next.js UI, sends it to Open
 
 - `SECRETS_ARN`: Secrets Manager ARN/name that contains JSON like:
   ```json
-  {"OPENAI_API_KEY":"sk-..."}
+  {"OPENAI_API_KEY":"sk-...","GEMINI_API_KEY":"..."}
   ```
-- `OPENAI_CHAT_MODEL` (optional): Defaults to `gpt-4o-mini`.
+- `GEMINI_MODEL` (optional): Defaults to `gemini-2.5-flash`.
 
 ## Request
 
