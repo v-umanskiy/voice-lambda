@@ -60,6 +60,10 @@ def _decode_audio_payload(payload):
 
 
 def lambda_handler(event, context):
+    path = event.get("path") or ""
+    if path.endswith("/health"):
+        return _response(200, {"status": "ok"})
+
     if event.get("httpMethod") == "OPTIONS":
         return _response(200, {"ok": True})
 

@@ -23,6 +23,10 @@ Send JSON in the body (API Gateway proxy). Example:
 
 Also accepts camelCase keys (`audioBase64`, `mimeType`).
 
+## Health Check
+
+Call `GET /health` to receive `{ "status": "ok" }`.
+
 ## Response
 
 ```json
