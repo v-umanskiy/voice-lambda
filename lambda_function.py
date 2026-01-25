@@ -5,11 +5,10 @@ import os
 import re
 import uuid
 
-import boto3
 import google.generativeai as genai
 from openai import OpenAI
 
-_secrets_client = boto3.client("secretsmanager")
+from secrets import get_api_config
 
 
 def _response(status_code, payload):
@@ -23,19 +22,6 @@ def _response(status_code, payload):
         },
         "body": json.dumps(payload),
     }
-
-
-def _get_secret():
-    secret_id = os.environ.get("SECRETS_ARN") or os.environ.get("OPENAI_SECRET_ID")
-    if not secret_id:
-        raise RuntimeError("Missing SECRETS_ARN env var")
-
-    secret_value = _secrets_client.get_secret_value(SecretId=secret_id)
-    secret_string = secret_value.get("SecretString")
-    if not secret_string:
-        raise RuntimeError("SecretString is empty")
-
-    return json.loads(secret_string)
 
 
 def _decode_audio_payload(payload):
@@ -81,12 +67,8 @@ def lambda_handler(event, _context):
         return _response(400, {"error": str(exc)})
 
     try:
-        secret = _get_secret()
-        api_key = secret.get("OPENAI_API_KEY")
-        if not api_key:
-            raise RuntimeError("OPENAI_API_KEY missing from secret")
-
-        client = OpenAI(api_key=api_key)
+        config = get_api_config()
+        client = OpenAI(api_key=config["openai_api_key"])
         try:
             with open(audio_path, "rb") as audio_file:
                 transcription = client.audio.transcriptions.create(
@@ -113,11 +95,7 @@ def lambda_handler(event, _context):
                 "Respond in the same language as the original message."
             )
 
-            gemini_key = secret.get("GEMINI_API_KEY")
-            if not gemini_key:
-                raise RuntimeError("GEMINI_API_KEY missing from secret")
-
-            genai.configure(api_key=gemini_key)
+            genai.configure(api_key=config["gemini_api_key"])
             gemini_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
             model = genai.GenerativeModel(gemini_model)
             response = model.generate_content(f"{prompt}\n\nTranscript:\n{text}")
