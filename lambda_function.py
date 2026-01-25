@@ -71,9 +71,6 @@ def lambda_handler(event, context):
     if path.endswith("/health"):
         return _response(200, {"status": "ok"})
 
-    if method == "OPTIONS":
-        return _response(200, {"ok": True})
-
     body = event.get("body") or ""
     if event.get("isBase64Encoded"):
         body = base64.b64decode(body).decode("utf-8")
