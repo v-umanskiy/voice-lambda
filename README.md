@@ -4,7 +4,7 @@ AWS Lambda handler that accepts base64 audio from a Next.js UI, sends it to Open
 
 ## Environment
 
-- `OPENAI_SECRET_ID`: Secrets Manager ID/ARN/name that contains JSON like:
+- `SECRETS_ARN`: Secrets Manager ARN/name that contains JSON like:
   ```json
   {"OPENAI_API_KEY":"sk-..."}
   ```

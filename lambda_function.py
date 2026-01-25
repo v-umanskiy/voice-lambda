@@ -24,9 +24,9 @@ def _response(status_code, payload):
 
 
 def _get_secret():
-    secret_id = os.environ.get("OPENAI_SECRET_ID")
+    secret_id = os.environ.get("SECRETS_ARN") or os.environ.get("OPENAI_SECRET_ID")
     if not secret_id:
-        raise RuntimeError("Missing OPENAI_SECRET_ID env var")
+        raise RuntimeError("Missing SECRETS_ARN env var")
 
     secret_value = _secrets_client.get_secret_value(SecretId=secret_id)
     secret_string = secret_value.get("SecretString")
@@ -60,11 +60,18 @@ def _decode_audio_payload(payload):
 
 
 def lambda_handler(event, context):
-    path = event.get("path") or ""
+    path = event.get("rawPath") or event.get("path") or ""
+    method = (
+        event.get("requestContext", {})
+        .get("http", {})
+        .get("method")
+        or event.get("httpMethod")
+        or ""
+    )
     if path.endswith("/health"):
         return _response(200, {"status": "ok"})
 
-    if event.get("httpMethod") == "OPTIONS":
+    if method == "OPTIONS":
         return _response(200, {"ok": True})
 
     body = event.get("body") or ""
