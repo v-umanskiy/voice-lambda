@@ -1,6 +1,14 @@
-# Voice Transcription Lambda
+# Voice Lambda
 
-AWS Lambda handler that accepts base64 audio from a Next.js UI, sends it to OpenAI Whisper, and returns text.
+This Lambda accepts base64 audio from the desktop app, transcribes it with
+OpenAI Whisper, and enriches the result with Gemini (summary + cleaned text).
+
+## Architecture Overview
+
+- Input: JSON payload with `audio_base64` and `mime_type`.
+- Transcription: OpenAI Whisper (`whisper-1`).
+- Enrichment: Gemini (`gemini-2.5-flash` by default) for summary + formatting.
+- Output: JSON `{ "text": "..." }`.
 
 ## Environment
 
@@ -9,6 +17,11 @@ AWS Lambda handler that accepts base64 audio from a Next.js UI, sends it to Open
   {"OPENAI_API_KEY":"sk-...","GEMINI_API_KEY":"..."}
   ```
 - `GEMINI_MODEL` (optional): Defaults to `gemini-2.5-flash`.
+
+## Behavior
+
+- Returns a summary line followed by a blank line and the cleaned text.
+- Supports Markdown bold and bullet lists in the response.
 
 ## Request
 
