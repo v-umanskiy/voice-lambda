@@ -9,6 +9,7 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import lambda_function
+import transcription
 
 
 @patch("lambda_function.mimetypes.guess_extension", return_value=".webm")
@@ -63,6 +64,45 @@ def test_decode_audio_payload_data_url(tmp_path, monkeypatch):
 def test_decode_audio_payload_missing_audio():
     with pytest.raises(ValueError, match="Missing audio_base64"):
         lambda_function._decode_audio_payload({})
+
+
+def test_transcribe_audio_dict_response(tmp_path):
+    audio_path = tmp_path / "sample.wav"
+    audio_path.write_bytes(b"audio")
+
+    class FakeTranscriptions:
+        def create(self, model, file, response_format):
+            return {"text": "dict text"}
+
+    class FakeAudio:
+        transcriptions = FakeTranscriptions()
+
+    class FakeClient:
+        audio = FakeAudio()
+
+    with patch.object(transcription, "OpenAI", return_value=FakeClient()):
+        assert transcription.transcribe_audio(str(audio_path), "key") == "dict text"
+
+
+def test_transcribe_audio_object_response(tmp_path):
+    audio_path = tmp_path / "sample.wav"
+    audio_path.write_bytes(b"audio")
+
+    class FakeResponse:
+        text = "object text"
+
+    class FakeTranscriptions:
+        def create(self, model, file, response_format):
+            return FakeResponse()
+
+    class FakeAudio:
+        transcriptions = FakeTranscriptions()
+
+    class FakeClient:
+        audio = FakeAudio()
+
+    with patch.object(transcription, "OpenAI", return_value=FakeClient()):
+        assert transcription.transcribe_audio(str(audio_path), "key") == "object text"
 
 
 def test_health_check():
