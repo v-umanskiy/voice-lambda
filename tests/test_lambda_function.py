@@ -20,7 +20,7 @@ def test_decode_audio_payload_defaults_and_audio_base64(
     monkeypatch.setattr(
         lambda_function.os.path,
         "join",
-        lambda *_parts: str(tmp_path / _parts[-1]),
+        lambda *_parts: f"{tmp_path}/{_parts[-1]}",
     )
     payload = {"audio_base64": base64.b64encode(b"hello").decode("utf-8")}
 
@@ -34,7 +34,7 @@ def test_decode_audio_payload_audio_base64_camelcase(tmp_path, monkeypatch):
     monkeypatch.setattr(
         lambda_function.os.path,
         "join",
-        lambda *_parts: str(tmp_path / _parts[-1]),
+        lambda *_parts: f"{tmp_path}/{_parts[-1]}",
     )
     payload = {"audioBase64": base64.b64encode(b"camel").decode("utf-8")}
 
@@ -47,7 +47,7 @@ def test_decode_audio_payload_data_url(tmp_path, monkeypatch):
     monkeypatch.setattr(
         lambda_function.os.path,
         "join",
-        lambda *_parts: str(tmp_path / _parts[-1]),
+        lambda *_parts: f"{tmp_path}/{_parts[-1]}",
     )
     encoded = base64.b64encode(b"payload").decode("utf-8")
     payload = {
