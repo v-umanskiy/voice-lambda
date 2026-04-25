@@ -52,3 +52,9 @@ Call `GET /health` to receive `{ "status": "ok" }`.
 
 - CORS headers are included in the response.
 - Audio is written to `/tmp` before upload to OpenAI.
+
+## Deploy
+
+- Lambda runtime is Python 3.12.
+- `deploy.sh` packages dependencies for CPython 3.12 Linux wheels.
+- Prerequisite: have `python3.12` installed locally, or run with `PYTHON_BIN=/path/to/python3.12 ./deploy.sh`.
