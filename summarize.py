@@ -1,7 +1,7 @@
 import os
 import re
 
-import google.generativeai as genai
+from google import genai
 
 
 _PROMPT = (
@@ -21,9 +21,11 @@ _PROMPT = (
 
 
 def summarize_transcript(transcript: str, api_key: str) -> str:
-    genai.configure(api_key=api_key)
     gemini_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-    model = genai.GenerativeModel(gemini_model)
-    response = model.generate_content(f"{_PROMPT}\n\nTranscript:\n{transcript}")
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model=gemini_model,
+        contents=f"{_PROMPT}\n\nTranscript:\n{transcript}",
+    )
     formatted_text = response.text or ""
     return re.sub(r"^(\s*)[*•]\s+", r"\1- ", formatted_text, flags=re.MULTILINE)
